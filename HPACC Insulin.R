@@ -137,7 +137,7 @@ write.csv(tab3Mat, file = "tab3.csv")
 
 # reduced rate of severe hypoglycemia due to lower insulin use
 # Adjusted for insulin type, sliding-scale insulin use, and albumin, creatinine, and hematocrit levels, the higher odds of hypoglycemia with increasing insulin doses remained (0.6–0.8 units/kg: odds ratio 2.10 [95% CI 1.08–4.09], P = 0.028; >0.8 units/kg: 2.95 [1.54–5.65], P = 0.001). The adjusted odds of hypoglycemia were not greater in patients who received 0.2–0.4 units/kg (1.08 [0.64–1.81], P = 0.78) or 0.4–0.6 units/kg (1.60 [0.90–2.86], P = 0.11). See https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3142056/ 
-#  Baseline rate of severe hypoglycemia is 35 per 100 patient-years in Type 2 diabetes mellitus (T2DM). https://pubmed.ncbi.nlm.nih.gov/19088155/ 
+#  Baseline rate of severe hypoglycemia is 1.9 to 2.5 per 100 patient-years in Type 2 diabetes mellitus (T2DM). https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10241751/
 
 # first calculate the units per kg per person per day in the old and new scenarios, for the variables insulin_dose, insulin_dose_new_glp, and insulin_dose_new_sglt and their associated _low and _high variables
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(insulin_units_per_kg = insulin_dose / wt)
@@ -158,10 +158,10 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_re
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_sglt_low = 1/100 * delta_insulin_dose_sglt_low * 10)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_sglt_high = 1/100 * delta_insulin_dose_sglt_high * 10)
 
-# next calculate the  rate of severe hypoglycemia over 10 years for each of the nine scenarios above, where hypoglycemia_rate = 35/100*10 * exp(3.39 * (units/kg) - 1.632] 
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate = 35/100*10 * exp(3.39 * (insulin_units_per_kg) - 1.632))
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_low = 35/100*10 * exp(3.39 * (insulin_units_per_kg_low) - 1.632))
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_high = 35/100*10 * exp(3.39 * (insulin_units_per_kg_high) - 1.632))
+# next calculate the  rate of severe hypoglycemia over 10 years for each of the nine scenarios above, where hypoglycemia_rate = 2.2 (varied from 1.9 to 2.5)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate = 2.2/100*10 * exp(3.39 * (insulin_units_per_kg) - 1.632))
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_low = 1.9/100*10 * exp(3.39 * (insulin_units_per_kg_low) - 1.632))
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_high = 2.5/100*10 * exp(3.39 * (insulin_units_per_kg_high) - 1.632))
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp = hypoglycemia_rate - hypoglycemia_rate_reduction_new_glp)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp_low = hypoglycemia_rate_low - hypoglycemia_rate_reduction_new_glp_low)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp_high = hypoglycemia_rate_high - hypoglycemia_rate_reduction_new_glp_high)
@@ -492,6 +492,20 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_high =
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt = DALYs_new_sglt + (1-mortality_reduction_new_sglt) * mortality_rate/1000 * 10 * 1/((1+0.03)^10) * percent_insulin)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_low = DALYs_new_sglt_low + (1-mortality_reduction_new_sglt_low) * mortality_rate/1000 * 10 * 1/((1+0.03)^10) * percent_insulin)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_high = DALYs_new_sglt_high + (1-mortality_reduction_new_sglt_high) * mortality_rate/1000 * 10 * 1/((1+0.03)^10) * percent_insulin)
+
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% 
+  mutate(
+    DALYs = pmax(0, DALYs),
+    DALYs_low = pmax(0, DALYs_low),
+    DALYs_high = pmax(0, DALYs_high),
+    DALYs_new_glp = pmax(0, DALYs_new_glp),
+    DALYs_new_glp_low = pmax(0, DALYs_new_glp_low),
+    DALYs_new_glp_high = pmax(0, DALYs_new_glp_high),
+    DALYs_new_sglt = pmax(0, DALYs_new_sglt),
+    DALYs_new_sglt_low = pmax(0, DALYs_new_sglt_low),
+    DALYs_new_sglt_high = pmax(0, DALYs_new_sglt_high)
+  )
+
 
 # make a Table 4 of the resulting estimates: using the tableone package to show the distribution of variables
 table4 <- CreateTableOne(vars = c("DALYs","DALYs_low","DALYs_high",
