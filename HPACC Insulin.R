@@ -137,7 +137,6 @@ write.csv(tab3Mat, file = "tab3.csv")
 
 # reduced rate of severe hypoglycemia due to lower insulin use
 # Adjusted for insulin type, sliding-scale insulin use, and albumin, creatinine, and hematocrit levels, the higher odds of hypoglycemia with increasing insulin doses remained (0.6–0.8 units/kg: odds ratio 2.10 [95% CI 1.08–4.09], P = 0.028; >0.8 units/kg: 2.95 [1.54–5.65], P = 0.001). The adjusted odds of hypoglycemia were not greater in patients who received 0.2–0.4 units/kg (1.08 [0.64–1.81], P = 0.78) or 0.4–0.6 units/kg (1.60 [0.90–2.86], P = 0.11). See https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3142056/ 
-#  Baseline rate of severe hypoglycemia is 5.2 [4.2 to 6.4] per 100 patient-years in Type 2 diabetes mellitus (T2DM). https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10241751/
 
 # first calculate the units per kg per person per day in the old and new scenarios, for the variables insulin_dose, insulin_dose_new_glp, and insulin_dose_new_sglt and their associated _low and _high variables
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(insulin_units_per_kg = insulin_dose / wt)
@@ -150,41 +149,34 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(insulin_units_per_kg
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(insulin_units_per_kg_new_sglt_low = insulin_dose_new_sglt_low / wt)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(insulin_units_per_kg_new_sglt_high = insulin_dose_new_sglt_high / wt)
 
-# the reduction in the rate of severe hypoglycemia is 1 per 100 person years for each 0.1 unit/kg/day reduction in insulin dose, so we will calculate the reduction in the rate of severe hypoglycemia for each of the nine scenarios above
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_glp = 1/100 * delta_insulin_dose_glp * 10)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_glp_low = 1/100 * delta_insulin_dose_glp_low * 10)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_glp_high = 1/100 * delta_insulin_dose_glp_high * 10)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_sglt = 1/100 * delta_insulin_dose_sglt * 10)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_sglt_low = 1/100 * delta_insulin_dose_sglt_low * 10)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_reduction_new_sglt_high = 1/100 * delta_insulin_dose_sglt_high * 10)
+# the reduction in the rate of severe hypoglycemia is relative risk [RR] = 0.46; 95% CI, 0.38-0.55 for GLP1-RA and 1.24 (95% CI, 0.77-2.00) for SGLT2i
+#  Baseline rate of severe hypoglycemia is 5.2 [4.2 to 6.4] per 100 patient-years in Type 2 diabetes mellitus (T2DM). https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10241751/
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate = 5.2/100*10)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_low = 4.2/100*10) 
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_high = 6.4/100*10) 
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp = hypoglycemia_rate*.46)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp_low = hypoglycemia_rate_low*.38)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp_high = hypoglycemia_rate_high*.55)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_sglt = hypoglycemia_rate*1.24)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_sglt_low = hypoglycemia_rate_low*0.77)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_sglt_high = hypoglycemia_rate_high*2.00)
 
-# next calculate the  rate of severe hypoglycemia over 10 years for each of the nine scenarios above, where hypoglycemia_rate = 2.2 (varied from 1.9 to 2.5)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate = 5.2/100*10 * exp(3.39 * (insulin_units_per_kg) - 1.632))
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_low = 4.2/100*10 * exp(3.39 * (insulin_units_per_kg_low) - 1.632))
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_high = 6.4/100*10 * exp(3.39 * (insulin_units_per_kg_high) - 1.632))
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp = hypoglycemia_rate - hypoglycemia_rate_reduction_new_glp)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp_low = hypoglycemia_rate_low - hypoglycemia_rate_reduction_new_glp_low)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_glp_high = hypoglycemia_rate_high - hypoglycemia_rate_reduction_new_glp_high)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_sglt = hypoglycemia_rate - hypoglycemia_rate_reduction_new_sglt)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_sglt_low = hypoglycemia_rate_low - hypoglycemia_rate_reduction_new_sglt_low)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(hypoglycemia_rate_new_sglt_high = hypoglycemia_rate_high - hypoglycemia_rate_reduction_new_sglt_high)
-
-# now calculate the DALYs lost to hypoglycemia for each of the nine scenarios above, where DALYs = 0.1 * hypoglycemia_rate * 10 * 1/((1+0.03)^10)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs = 0.1 * hypoglycemia_rate * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_low = 0.1 * hypoglycemia_rate_low * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_high = 0.1 * hypoglycemia_rate_high * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp = 0.1 * hypoglycemia_rate_new_glp * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_low = 0.1 * hypoglycemia_rate_new_glp_low * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_high = 0.1 * hypoglycemia_rate_new_glp_high * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt = 0.1 * hypoglycemia_rate_new_sglt * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_low = 0.1 * hypoglycemia_rate_new_sglt_low * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_high = 0.1 * hypoglycemia_rate_new_sglt_high * 10 * 1/((1+0.03)^10) * percent_insulin)
+# now calculate the DALYs lost to hypoglycemia for each of the nine scenarios above, where DALYs = 0.1 * hypoglycemia_rate * 1/((1+0.03)^10), scaled by lasting for 1 day duration per event
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs = 0.1 * hypoglycemia_rate  * 1/365.25*10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_low = 0.09 * hypoglycemia_rate_low * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_high = 0.11 * hypoglycemia_rate_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp = 0.1 * hypoglycemia_rate_new_glp * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_low = 0.09 * hypoglycemia_rate_new_glp_low * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_high = 0.11 * hypoglycemia_rate_new_glp_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt = 0.1 * hypoglycemia_rate_new_sglt* 1/365.25*10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_low = 0.09 * hypoglycemia_rate_new_sglt_low * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_high = 0.11 * hypoglycemia_rate_new_sglt_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
 
 # now for the GLP1RA scenarios, we will estimate the rate of new adverse events: GI side effects at a rate of 15-20% having diarrhea among 11% of people, with a disutility/DALY cost of 0.188 and lasting 3-4 days, and the risk of pancreatitis at a rate of 1.2 to 2.1 events per 1000 patient-years with a disutility of 0.324 and lasting 28 to 53 days
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(GI_side_effects_rate = 0.18 * 0.11)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(GI_side_effects_disutility = 0.188 * 3/365.25/10 * 1/((1+0.03)^10) )
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(GI_side_effects_disutility = 0.188 * 3/365.25*10 * 1/((1+0.03)^10) )
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(pancreatitis_rate = 0.016)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(pancreatitis_disutility = 0.324 * 41/365.25/10 * 1/((1+0.03)^10))
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(pancreatitis_disutility = 0.324 * 41/365.25*10 * 1/((1+0.03)^10))
 
 # now let's update the DALYs in the glp scenarios to subtract the costs of GI side effects and pancreatitis
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp = DALYs_new_glp + (GI_side_effects_rate * GI_side_effects_disutility + pancreatitis_rate * pancreatitis_disutility))
@@ -193,9 +185,9 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_high =
 
 # now for the SGLT2i scenarios, we will estimate the rate of new adverse events: UTIs at a rate of 87.4 per 1000 patient-years for women and 11.9 per 1000 patient-years for men with a disutility of 0.051 and lasting 3-14 days, and the risk of DKA at a rate of 0.6 to 4.9 events per 1000 patient-years with a disutility of 0.1 to 0.2 and lasting 3 to 7 days
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(UTI_rate = 0.0497)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(UTI_disutility = 0.051 * 8.5/365.25/10 * 1/((1+0.03)^10) *  percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(UTI_disutility = 0.051 * 8.5/365.25*10 * 1/((1+0.03)^10) *  percent_insulin)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DKA_rate = 0.00275)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DKA_disutility = 0.15 * 5/365.25/10 * 1/((1+0.03)^10) *  percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DKA_disutility = 0.15 * 5/365.25*10 * 1/((1+0.03)^10) *  percent_insulin)
 
 # now let's update the DALYs in the sglt scenarios to subtract the costs of UTIs and DKA
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt = DALYs_new_sglt + (UTI_rate * UTI_disutility + DKA_rate * DKA_disutility))
@@ -410,7 +402,7 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk = globorisk
 # replace NA values with average
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk = ifelse(is.na(CVD_risk), mean(hpacc_diabetes_insulin$CVD_risk, na.rm = TRUE), CVD_risk))
 
-# now we're going to include the benefits of GLP1-RAs and SGLT2 inhibitors on cardiovascular outcomes, which is 18% for GLP1-RAs (varied from 2% to 52%), and 15% for SGLT2 inhibitors (varied from 7% to 23%) 
+# now we're going to include the benefits of GLP1-RAs and SGLT2 inhibitors on cardiovascular outcomes, which is a risk reduction of 18% for GLP1-RAs (varied from 2% to 52%), and 15% for SGLT2 inhibitors (varied from 7% to 23%) 
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk_new_glp = CVD_risk * 0.82)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk_new_glp_low = CVD_risk * 0.68)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk_new_glp_high = CVD_risk * 0.98)
@@ -418,24 +410,24 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk_new_sglt = 
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk_new_sglt_low = CVD_risk * 0.77)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(CVD_risk_new_sglt_high = CVD_risk * 0.93)
 
-# now calculate the DALYs lost to CVD for each of the nine scenarios above, where DALYs = CVD_risk * 0.072 * 10 * 1/((1+0.03)^10), where 0.072 goes to a low of 0.041 to a high of 0.179
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs = DALYs + CVD_risk * 0.072 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_low = DALYs_low + CVD_risk * 0.041 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_high = DALYs_high + CVD_risk * 0.179 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp = DALYs_new_glp + CVD_risk_new_glp * 0.072 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_low = DALYs_new_glp_low + CVD_risk_new_glp * 0.041 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_high = DALYs_new_glp_high + CVD_risk_new_glp * 0.179 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt = DALYs_new_sglt + CVD_risk_new_sglt * 0.072 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_low = DALYs_new_sglt_low + CVD_risk_new_sglt * 0.041 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_high = DALYs_new_sglt_high + CVD_risk_new_sglt * 0.179 * 10 * 1/((1+0.03)^10) * percent_insulin)
+# now calculate the DALYs lost to CVD for each of the nine scenarios above, where DALYs = CVD_risk * 0.072 * 10 * 1/((1+0.03)^10), where 0.072 goes to a low of 0.041 to a high of 0.179, and DALYs duration lasts for an average of 5 of those 10 years when normally distributed in onset
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs = DALYs + CVD_risk * 0.072 * 10 *5 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_low = DALYs_low + CVD_risk * 0.041 * 10 *5* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_high = DALYs_high + CVD_risk * 0.179 * 10 *5* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp = DALYs_new_glp + CVD_risk_new_glp * 0.072 * 10 *5* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_low = DALYs_new_glp_low + CVD_risk_new_glp * 0.041 * 10 *5* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp_high = DALYs_new_glp_high + CVD_risk_new_glp * 0.179 * 10*5 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt = DALYs_new_sglt + CVD_risk_new_sglt * 0.072 * 10 *5* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_low = DALYs_new_sglt_low + CVD_risk_new_sglt * 0.041 * 10 *5* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_high = DALYs_new_sglt_high + CVD_risk_new_sglt * 0.179 * 10 *5* 1/((1+0.03)^10) * percent_insulin)
 
-# now we're going to include the benefits of GLP1-RAs and SGLT2 inhibitors on renal outcomes, where the annual risk is 4.1 per 1000 person years (4.1 / 100 for a 10-year span), varied from 2.9 to 7.4, with a disutility of 0.338 (varied from 0.104 to 0.571)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_risk = 0.0041)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_risk_low = 0.0029)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_risk_high = 0.0074)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_disutility = 0.338 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_disutility_low = 0.104 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_disutility_high = 0.571 * 10 * 1/((1+0.03)^10) * percent_insulin)
+# now we're going to include the benefits of GLP1-RAs and SGLT2 inhibitors on renal outcomes, where the annual risk is 4.1 per 1000 person years (4.1 / 100 for a 10-year span), varied from 2.9 to 7.4, with a disutility of 0.338 (varied from 0.104 to 0.571), and DALYs duration lasts for an average of 5 of those 10 years when normally distributed in onset
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_risk = 4.1/100)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_risk_low = 2.9/100)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_risk_high = 7.4/100)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_disutility = 0.338 * 10 * 5 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_disutility_low = 0.104 * 10 * 5 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(renal_disutility_high = 0.571 * 10 * 5* 1/((1+0.03)^10) * percent_insulin)
 
 # now let's update the DALYs to add the cost of renal outcomes for all scenarios, where GLP1RA reduces renal disutility by 21% (6% to 34%), and SGLT2i reduces renal disutility by 37% (31% to 42%)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs = DALYs + renal_risk*renal_disutility)
@@ -448,7 +440,7 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt = DAL
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_low = DALYs_new_sglt_low + renal_risk_low*renal_disutility_low * 0.58)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_sglt_high = DALYs_new_sglt_high + renal_risk_high*renal_disutility_high * 0.69)
 
-# now we're going to include the benefits of GLP1-RAs and SGLT2 inhibitors on weight outcomes, where the weight loss on GLP1RA is 3.4 kg, varied from 2.3 to 4.5, and on SLGT2i is 1.8 kg, varied from 1.9 to 1.6, with a disutility of 0.00185 (varied from 0.00012 to 0.00441) per kg
+# now we're going to include the benefits of GLP1-RAs and SGLT2 inhibitors on weight outcomes, where the weight loss on GLP1RA is 3.4 kg, varied from 2.3 to 4.5, and on SLGT2i is 1.8 kg, varied from 1.9 to 1.6, with a disutility of 0.00185 (varied from 0.00012 to 0.00441) per kg and DALYs duration lasts for an average of 10 of those 10 years due to rapid weight loss and maintenance after onset of Rx
 # first calculate the weight loss amount
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_loss_new_glp = 3.4)
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_loss_new_glp_low = 2.3)
@@ -458,12 +450,12 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_loss_new_sglt
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_loss_new_sglt_high = 1.9)
 
 # now let's calculate the disutility of weight loss for each scenario, separately for GLP1RAs and for SGLT2is
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_glp = -0.00185 * weight_loss_new_glp * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_glp_low = -0.00441 * weight_loss_new_glp_low * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_glp_high = -0.00012 * weight_loss_new_glp_high * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_sglt = -0.00185 * weight_loss_new_sglt * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_sglt_low = -0.00441 * weight_loss_new_sglt_low * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_sglt_high = -0.00012 * weight_loss_new_sglt_high * 10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_glp = -0.00185 * weight_loss_new_glp * 10 *10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_glp_low = -0.00441 * weight_loss_new_glp_low * 10 *10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_glp_high = -0.00012 * weight_loss_new_glp_high * 10*10  * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_sglt = -0.00185 * weight_loss_new_sglt * 10*10  * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_sglt_low = -0.00441 * weight_loss_new_sglt_low * 10 *10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(weight_disutility_sglt_high = -0.00012 * weight_loss_new_sglt_high * 10 *10 * 1/((1+0.03)^10) * percent_insulin)
 
 # now let's update the DALYs to add the cost of weight outcomes for all scenarios
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_new_glp = DALYs_new_glp + weight_disutility_glp)
@@ -522,12 +514,12 @@ write.csv(tab4Mat, file = "tab4.csv")
 
 # calculate what fraction of the difference in DALYs across the different scenarios was due to the DALYs saved from lower hypoglycemia events, versus the DALYs saved from lower CVD events or from lower kidney events or from lower overall mortality
 # first calculate the DALY change from lower hypooglycemia in GLP1RA and SGLT2i scenarios
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_glp = 0.1 * (hypoglycemia_rate - hypoglycemia_rate_new_glp) * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_glp_low = 0.1 * (hypoglycemia_rate_low - hypoglycemia_rate_new_glp_low) * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_glp_high = 0.1 * (hypoglycemia_rate_high - hypoglycemia_rate_new_glp_high) * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_sglt = 0.1 * (hypoglycemia_rate - hypoglycemia_rate_new_sglt ) * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_sglt_low = 0.1 * (hypoglycemia_rate_low - hypoglycemia_rate_new_sglt_low ) * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_sglt_high = 0.1 * (hypoglycemia_rate_high - hypoglycemia_rate_new_sglt_high ) * 10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_glp = 0.1 * hypoglycemia_rate  * 1/365.25*10 * 1/((1+0.03)^10) * percent_insulin - 0.1 * hypoglycemia_rate_new_glp * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_glp_low =  0.09 * hypoglycemia_rate_low * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin - 0.11 * hypoglycemia_rate_new_glp_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_glp_high = 0.11 * hypoglycemia_rate_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin - 0.09 * hypoglycemia_rate_new_glp_low * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_sglt = 0.1 * hypoglycemia_rate  * 1/365.25*10 * 1/((1+0.03)^10) * percent_insulin - 0.11 * hypoglycemia_rate_new_sglt_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_sglt_low = 0.09 * hypoglycemia_rate_low * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin - 0.11 * hypoglycemia_rate_new_sglt_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_hypoglycemia_sglt_high = 0.11 * hypoglycemia_rate_high * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin - 0.09 * hypoglycemia_rate_new_sglt_low * 1/365.25*10* 1/((1+0.03)^10) * percent_insulin)
 
 # next calculate the DALY change from higher side-effects of GI and pancreatitis for glp1ra scenarios, and higher UTI and DKA in sglt2i scenarios
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_side_effects_glp = -GI_side_effects_rate * GI_side_effects_disutility + pancreatitis_rate * pancreatitis_disutility)
@@ -539,12 +531,13 @@ hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_side_effects_s
 
 
 # next calculate the DALY change from lower CVD events in GLP1RA and SGLT2i scenarios
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_glp = (CVD_risk - CVD_risk_new_glp )* 0.072 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_glp_low = (CVD_risk - CVD_risk_new_glp_low )* 0.041 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_glp_high = (CVD_risk - CVD_risk_new_glp_high )* 0.179 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_sglt = (CVD_risk - CVD_risk_new_sglt )* 0.072 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_sglt_low = (CVD_risk - CVD_risk_new_sglt_low )* 0.041 * 10 * 1/((1+0.03)^10) * percent_insulin)
-hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_sglt_high = (CVD_risk - CVD_risk_new_sglt_high )* 0.179 * 10 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_glp = (CVD_risk - CVD_risk_new_glp )* 0.072 * 10 *5 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_glp_low = (CVD_risk - CVD_risk_new_glp_low )* 0.041 * 10*5  * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_glp_high = (CVD_risk - CVD_risk_new_glp_high )* 0.179 * 10 *5 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_sglt = (CVD_risk - CVD_risk_new_sglt )* 0.072 * 10*5  * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_sglt_low = (CVD_risk - CVD_risk_new_sglt_low )* 0.041 * 10 *5 * 1/((1+0.03)^10) * percent_insulin)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_CVD_sglt_high = (CVD_risk - CVD_risk_new_sglt_high )* 0.179 * 10 *5 * 1/((1+0.03)^10) * percent_insulin)
+
 
 # next calculate the DALY change from lower kidney events in GLP1RA and SGLT2i scenarios
 hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% mutate(DALYs_kidney_glp = (renal_risk - 0.79 * renal_risk)* renal_disutility)
