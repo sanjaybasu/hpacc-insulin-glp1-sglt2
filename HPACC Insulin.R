@@ -604,3 +604,53 @@ tab5Mat <- print(table5, nonnormal = c("DALYs_delta_glp_frac_hypoglycemia","DALY
 write.csv(tab5Mat, file = "tab5.csv")
 
 
+# Add combination therapy analyses
+# First calculate the additional benefits on top of SGLT2i alone
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>% 
+  mutate(insulin_dose_new_combo = insulin_dose_new_sglt * 0.8, # Additional 20% reduction from combo
+         insulin_dose_new_combo_low = insulin_dose_new_sglt_low * 0.7,  # Additional 30% reduction in sensitivity analysis
+         insulin_dose_new_combo_high = insulin_dose_new_sglt_high * 0.9) # Additional 10% reduction in sensitivity analysis
+
+# Calculate combo therapy hypoglycemia risk (similar to SGLT2i alone per meta-analysis)
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>%
+  mutate(hypoglycemia_rate_new_combo = hypoglycemia_rate_new_sglt,
+         hypoglycemia_rate_new_combo_low = hypoglycemia_rate_new_sglt_low,
+         hypoglycemia_rate_new_combo_high = hypoglycemia_rate_new_sglt_high)
+
+# Add oral vs injectable GLP1RA sensitivity analysis 
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>%
+  mutate(insulin_dose_new_glp_oral = insulin_dose * 0.9, # 10% reduction for oral
+         insulin_dose_new_glp_oral_low = insulin_dose_low * 0.85,
+         insulin_dose_new_glp_oral_high = insulin_dose_high * 0.95)
+
+# Calculate DALYs for combo therapy
+hpacc_diabetes_insulin <- hpacc_diabetes_insulin %>%
+  mutate(
+    # Base hypoglycemia DALYs same as SGLT2i
+    DALYs_new_combo = DALYs_new_sglt,
+    DALYs_new_combo_low = DALYs_new_sglt_low, 
+    DALYs_new_combo_high = DALYs_new_sglt_high,
+    
+    # Add incremental CVD benefit (additional 15% relative risk reduction)
+    CVD_risk_new_combo = CVD_risk_new_sglt * 0.85,
+    DALYs_new_combo = DALYs_new_combo + (CVD_risk_new_sglt - CVD_risk_new_combo) * 0.072 * 10 * 5 * 1/((1+0.03)^10) * percent_insulin,
+    
+    # Add incremental weight benefit (-1.61kg additional)
+    weight_loss_new_combo = weight_loss_new_sglt + 1.61,
+    DALYs_new_combo = DALYs_new_combo + (-0.00185 * 1.61 * 10 * 10 * 1/((1+0.03)^10) * percent_insulin),
+    
+    # Add incremental kidney benefit (additional 10% relative risk reduction) 
+    DALYs_new_combo = DALYs_new_combo + renal_risk * renal_disutility * 0.1
+  )
+
+# Create new Table 6 with combo therapy results
+table6 <- CreateTableOne(vars = c("insulin_dose_new_combo", "insulin_dose_new_combo_low", "insulin_dose_new_combo_high",
+                                  "DALYs_new_combo", "DALYs_new_combo_low", "DALYs_new_combo_high",
+                                  "insulin_dose_new_glp_oral", "DALYs_new_glp_oral"), 
+                         data = hpacc_diabetes_insulin, 
+                         strata = "country", 
+                         test = F,
+                         addOverall = T)
+
+tab6Mat <- print(table6, nonnormal = TRUE)
+write.csv(tab6Mat, file = "tab6.csv")
